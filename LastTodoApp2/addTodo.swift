@@ -7,14 +7,22 @@
 //
 
 import UIKit
+import Alamofire
 
 class addTodo: UITableViewController {
     @IBOutlet weak var todoTextView: UITextField!
     var selectedIndex = 0
     
     @IBAction func addItem(_ sender: Any) {
-        let tod = Todo(id: 7, project_id: selectedIndex + 1, text: todoTextView.text!, isComplete: false)
-        Page[selectedIndex].Todos.append(tod)
+        //let tod = Todo(id: 7, project_id: selectedIndex + 1, text: todoTextView.text!, isComplete: false)
+        //Page[selectedIndex].Todos.append(tod)
+        let ind = selectedIndex + 1
+        let reqstr = "https://secondtodoapp.herokuapp.com/todos/add/" + ind.description + "|" + todoTextView.text!
+        Alamofire.request(reqstr.addingPercentEncoding(withAllowedCharacters: CharacterSet.urlQueryAllowed)!).response { response in
+            print("Request: \(response.request)")
+            print("Response: \(response.response)")
+            print("Error: \(response.error)")
+        }
         self.performSegue(withIdentifier: "toList", sender: self)
     }   
     

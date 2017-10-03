@@ -7,35 +7,44 @@
 //
 
 import UIKit
+import Alamofire
+import SwiftyJSON
+
 public var Page:[Project] = []
+
 
 class todoController: UITableViewController {
     
     @IBAction func unwindSegue(segue: UIStoryboardSegue){
-        self.tableView.reloadData()
+        reloadInfo()        //self.tableView.reloadData()
     }
     
     override func viewDidLoad() {
+        reloadInfo()
         super.viewDidLoad()
-        let projWork = Project(id: 1, title: "Auto")
-        let todo1 = Todo(id: 1, project_id: 1, text: "AutoOne", isComplete: true)
-        let todo2 = Todo(id: 2, project_id: 1, text: "AutoTwo", isComplete: false)
-        projWork.Todos.append(todo1)
-        projWork.Todos.append(todo2)
-        
-        let projHome = Project(id:2, title: "Home")
-        let todo3 = Todo(id:3, project_id: 2, text: "Home1", isComplete: false)
-        let todo4 = Todo(id:4, project_id: 2, text: "Home2#", isComplete: true)
-        let todo5 = Todo(id:5, project_id: 2, text: "home3", isComplete: false)
-        
-        projHome.Todos.append(todo3)
-        projHome.Todos.append(todo4)
-        projHome.Todos.append(todo5)
-        
-        Page.append(projWork)
-        Page.append(projHome)
     }
-
+    
+    func reloadInfo(){
+        Page.removeAll()
+        Alamofire.request("https://secondtodoapp.herokuapp.com/todo_controller/mobileAppGet").responseJSON { response in
+            print("Request: \(String(describing: response.request))")   // original url request
+            print("Response: \(String(describing: response.response))") // http url response
+            print("Result: \(response.result)")                         // response serialization result
+            if let json = response.result.value {
+                let projects = JSON(json)
+                for (_, proj) in projects["Projects"]{//"Proects"]{
+                    let newProj = Project(id: Int(proj["id"].description)!, title: proj["title"].description)
+                    for (_,todo) in proj["Todos"]{
+                        let newTodo = Todo(id: Int(todo["id"].description)!, project_id: Int(todo["project_id"].description)!,text: todo["text"].description,isComplete: Bool(todo["isCompleted"].description)!)
+                        newProj.Todos.append(newTodo)
+                    }
+                    Page.append(newProj)
+                }
+                self.tableView.reloadData()
+            }
+        }
+    }
+    
     override func didReceiveMemoryWarning() {
         super.didReceiveMemoryWarning()
         // Dispose of any resources that can be recreated.
@@ -95,8 +104,14 @@ class todoController: UITableViewController {
         cell.checkbox.checkboxValueChangedBlock = {
             isOn in
             if(isOn != Proj.Todos[indexPath.row].isComplete){
-                print("Todo with id: " + cell.checkbox.todoID.description + " is changed to: " + isOn.description)
+                //print("Todo with id: " + cell.checkbox.todoID.description + " is changed to: " + isOn.description)
                 Proj.Todos[indexPath.row].isComplete = isOn
+                let reqstr = "https://secondtodoapp.herokuapp.com/todos/" + cell.checkbox.todoID.description + "|" + isOn.description
+                Alamofire.request(reqstr.addingPercentEncoding(withAllowedCharacters: CharacterSet.urlQueryAllowed)!).response { response in
+                    print("Request: \(response.request)")
+                    print("Response: \(response.response)")
+                    print("Error: \(response.error)")
+                }
             }
         }
         return cell
